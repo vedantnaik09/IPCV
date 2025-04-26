@@ -180,28 +180,57 @@ elif mode == "Real-time Streaming":
     # File uploader for videos to stream
     uploaded_file = st.file_uploader("Upload a video for streaming", type=["mp4", "avi", "mov"])
     
+    # Add function to get local IP address
+    import socket
+    def get_local_ip():
+        try:
+            # Get the local IP address
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "localhost"
+    
     if uploaded_file is not None:
-        # Get the server's external URL (requires running with --server.enableCORS=false)
-        server_url = st.experimental_get_query_params().get("server", ["localhost:8501"])[0]
-        stream_url = f"http://{server_url}/stream"
+        # Save uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+            temp_file.write(uploaded_file.getvalue())
+            video_path = temp_file.name
+        
+        # Get local IP for streaming
+        server_ip = get_local_ip()
+        stream_port = 5000  # Set a port for the streaming server
+        stream_url = f"http://{server_ip}:{stream_port}/stream"
         
         st.info(f"Share this link to view the stream: {stream_url}")
         st.code(stream_url, language=None)
         
+        # Import the streaming server
+        from stream_server import start_stream_server
+        
+        stream_server_thread = None
+        
         # Button to start streaming
         if st.button("Start Streaming"):
-            # Create a placeholder for the streaming video
+            # Create a placeholder for the local streaming view
             stream_placeholder = st.empty()
             
-            # Stream the video with real-time detection
-            for frame in stream_video(uploaded_file, model, confidence_threshold):
-                if isinstance(frame, str) and frame.startswith("Error:"):
-                    st.error(frame)
-                    break
+            # Start the streaming server in a separate thread
+            if stream_server_thread is None or not stream_server_thread.is_alive():
+                stream_server_thread = threading.Thread(
+                    target=start_stream_server, 
+                    args=(video_path, model, confidence_threshold, stream_port)
+                )
+                stream_server_thread.daemon = True
+                stream_server_thread.start()
                 
-                # Display the frame in the placeholder using HTML
+                st.success(f"Streaming server started! Access at {stream_url}")
+                
+                # Display an iframe to show the stream locally
                 stream_placeholder.markdown(
-                    f'<img src="{frame}" style="max-width: 100%; height: auto;">',
+                    f'<iframe src="{stream_url}" width="100%" height="480" allow="autoplay"></iframe>',
                     unsafe_allow_html=True
                 )
 
