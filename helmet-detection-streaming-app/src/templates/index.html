@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helmet Detection Streaming App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Helmet Detection Streaming App</h1>
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="video-upload">Upload a Video:</label>
+            <input type="file" id="video-upload" name="video" accept="video/*" required>
+            <button type="submit">Upload</button>
+        </form>
+        <div id="video-container">
+            <video id="video-stream" controls autoplay></video>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
